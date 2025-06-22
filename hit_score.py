@@ -62,4 +62,68 @@ for b in batters:
         player_id = b['id']
         team_id = b['team_id']
 
-        sp_id_
+        # ✅ Correct: NO stray sp_id_
+        sp_id = team_sp_map.get(team_id)
+        if not sp_id:
+            print(f"⚠️ No SP for {b['name']} (Team ID {team_id}), skipping.")
+            continue
+
+        # Season AVG
+        season_url = f"{BASE_URL}/people/{player_id}/stats?stats=season&group=hitting"
+        season_data = requests.get(season_url).json()
+        splits = season_data['stats'][0]['splits']
+        if not splits:
+            continue
+        season_avg = float(splits[0]['stat']['avg'])
+
+        # Game Log: L5/L10/L20
+        log_url = f"{BASE_URL}/people/{player_id}/stats?stats=gameLog&group=hitting"
+        log_data = requests.get(log_url).json()
+        splits = log_data['stats'][0]['splits']
+        if not splits:
+            continue
+
+        L5 = sum(int(g['stat']['hits']) for g in splits[:5]) / 5
+        L10 = sum(int(g['stat']['hits']) for g in splits[:10]) / 10
+        L20 = sum(int(g['stat']['hits']) for g in splits[:20]) / 20
+
+        # SP OBA
+        sp_url = f"{BASE_URL}/people/{sp_id}/stats?stats=season&group=pitching"
+        sp_data = requests.get(sp_url).json()
+        sp_splits = sp_data['stats'][0]['splits']
+        if not sp_splits:
+            continue
+        sp_oba = float(sp_splits[0]['stat']['avg'])
+
+        # Compute Hit Score
+        season_component = season_avg / SEASON_AVG_BASE
+        trend_component = (L5 + L10 + L20) / TREND_BASE
+        sp_component = sp_oba / SEASON_AVG_BASE
+
+        hit_score = season_component + trend_component + sp_component
+
+        results.append({
+            "name": b['name'],
+            "season_avg": round(season_avg, 3),
+            "L5": round(L5, 3),
+            "L10": round(L10, 3),
+            "L20": round(L20, 3),
+            "sp_oba": round(sp_oba, 3),
+            "hit_score": round(hit_score, 2)
+        })
+
+        print(f"✅ {b['name']}: {round(hit_score, 2)}")
+
+    except Exception as e:
+        print(f"❌ Error for {b['name']}: {e}")
+
+# === 6) Save ===
+output = {
+    "generated_at": datetime.utcnow().isoformat(),
+    "players": results
+}
+
+with open("hit_scores.json", "w") as f:
+    json.dump(output, f, indent=4)
+
+print(f"\n🎉 All done! Saved hit_scores.json with {len(results)} players.")
