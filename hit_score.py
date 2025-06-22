@@ -42,5 +42,3 @@ with open("hit_scores.json", "w") as f:
     json.dump(output, f, indent=4)
 
 print(f"✅ Generated hit_scores.json with {len(results)} batters")
-
-add hit_score.py
