@@ -13,10 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout main branch with full history
         uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0   # ✅ FULL clone to enable push
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,10 +30,10 @@ jobs:
       - name: Run Hit Score script
         run: python hit_score.py
 
-      - name: Show git status
+      - name: Show git status for debugging
         run: git status
 
-      - name: Commit and push results
+      - name: Commit and push results to main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
